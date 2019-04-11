@@ -43,3 +43,5 @@ Atom_A/Atom_B are the number of the atom considered as it appears in the POSCAR.
 The code reads a whole step of the simulation, saves it in a variable, then calculates the distance between any of the chosen atoms.
 
 As output are printed the radial distribuction function of the closest atom and of all the equivalent atoms in the structure.
+The smallest distance of couple n is listed in fort.n and the whole set of 27 images appears in fort.(n+30).
+Because of that if you calculate more than 30 couples you need to rewrite the output.

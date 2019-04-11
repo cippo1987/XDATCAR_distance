@@ -1,5 +1,29 @@
+# Compiling
+The code should be easy to compile, but beware! -ffixed-line-length-none or -ffree-line-length-n with n large is needed because, well, fortran...
+
+
 # XDATCAR_distance
+
 This small fortran code calculate atomic distances in not orthogonal cell for a set of structures generated from a MD simulation.
+The input has to be named ONE_XDATCAR and it is the simple output of a MD run with VASP (https://www.vasp.at/index.php/about-vasp/59-about-vasp).
+
+This is an input example:
+```
+Name                                  
+           1   
+    13.764573    0.000000    0.000000
+    -6.862702   11.988418    0.000000
+     0.029535    0.001621   14.299894
+   Si   O    H    Na   Al
+  35  87  30   1   1
+Direct configuration=     1
+   0.77807603  0.77774692  0.10535127
+   0.44009437  0.10733477  0.44003690
+   [...]
+Direct configuration=     2
+```
+First line is the name, second line is the scale of the structure. Then you find a 3x3 matrix with the cell vectors.
+Line 6 lists the atomic species present. And Line 7 reports the number of atoms per specie.
 
 As far as I know there is not smart way to find the nearest atomic image of an atom. All 27 possible images should be considered. 
 If the closest vertex is known it is possible to check less cases. 

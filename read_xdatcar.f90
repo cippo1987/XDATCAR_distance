@@ -1,11 +1,11 @@
 subroutine calc_vectors(lattice_11, lattice_12, lattice_13, lattice_21, lattice_22, lattice_23, lattice_31, lattice_32, lattice_33, aa, bb, cc, alpha, beta, gamma, calpha, cbeta,cgamma)  
 implicit none
-real(kind=8), Intent(In)    :: lattice_11, lattice_12, lattice_13,lattice_21, lattice_22, lattice_23, lattice_31, lattice_32, lattice_33
-real(kind=8), Intent(Out)   :: aa, bb, cc
+real(kind=8), Intent(In)    :: lattice_11, lattice_12, lattice_13,lattice_21, lattice_22, lattice_23, lattice_31, lattice_32, lattice_33 !These are the element of the cell matrix a11, a12, etc etc, be carefull sometimes the matrix is rotated. 
+real(kind=8), Intent(Out)   :: aa, bb, cc ! lenght of the vectors of the cell
 real(kind=8), Intent(Out)   :: alpha, beta, gamma, calpha, cbeta, cgamma
 real(kind=8)                                                            :: vol
  
- aa = lattice_11
+ aa = lattice_11   !In principle the formula is more complex, this is the shortcutbecause we have a triangular matrix 
  bb = sqrt(lattice_21*lattice_21  + lattice_22*lattice_22)
  cc = sqrt(lattice_31*lattice_31 + lattice_32*lattice_32+lattice_33*lattice_33)
  vol = (lattice_31*(lattice_12*lattice_23-lattice_13*lattice_22) + lattice_32*(lattice_13*lattice_21-lattice_11*lattice_23) + lattice_33*(lattice_11*lattice_22-lattice_12*lattice_21))
@@ -23,12 +23,12 @@ end subroutine calc_vectors
 !!!!
 subroutine read_structure(UnitNum,FileName,num_atom, atom_position)  
 implicit none
-integer, Intent(In)                                                     :: UnitNum
-character (len=*), Intent(In)                                           :: FileName
-integer(kind=8)                                                         :: i
-integer(kind=8), Intent(In)                                             :: num_atom
+integer, Intent(In)                                                     :: UnitNum !file name number
+character (len=*), Intent(In)                                           :: FileName !name of the output
+integer(kind=8)                                                         :: i   
+integer(kind=8), Intent(In)                                             :: num_atom   !number of atoms per tructures
  
-real(kind=8),    DIMENSION(num_atom, 3), Intent(InOut)                  :: atom_position
+real(kind=8),    DIMENSION(num_atom, 3), Intent(InOut)                  :: atom_position  !atomic coordinates, matrix 3xN basically the poscar
 !write(*,*)UnitNum, FileName
 open(unit=UnitNum, file=FileName, status='old', action='read' )
 atom_position = -1
@@ -44,9 +44,9 @@ end subroutine read_structure
  
 subroutine rdf(vector_rdf, lung, number_of_couples, couple)
 implicit none
-integer(kind=8), Intent(InOut)  :: vector_rdf(number_of_couples,600)
-real(kind=8), Intent(In)        :: lung
-integer(kind=8),Intent(In)      :: number_of_couples, couple
+integer(kind=8), Intent(InOut)  :: vector_rdf(number_of_couples,600) !prints up to 60 Angstrom this is the output file
+real(kind=8), Intent(In)        :: lung        ! lenght of the bond
+integer(kind=8),Intent(In)      :: number_of_couples, couple  !number of couple MUST be atmost 29. This is due to the output. 
 real                    :: bin
 integer                 :: position
 !write(*,*)lung, "lung"
@@ -67,15 +67,15 @@ end subroutine setupvector
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 program read_xdatcar
 implicit none
-integer(kind=8)                                         :: num_structu
-integer(kind=8)                                         :: num_atom
-integer(kind=8)                                         :: num_species, atoma, atomb
-integer(kind=8), DIMENSION(:),    ALLOCATABLE           :: atom_a, atom_b
-integer(kind=8)                                         :: number_of_couples
+integer(kind=8)                                         :: num_structu  !number of MD steps
+integer(kind=8)                                         :: num_atom     ! number of atom per cell
+integer(kind=8)                                         :: num_species, atoma, atomb   !number of atomic species, number of first atom for the distance, second atom for the distance
+integer(kind=8), DIMENSION(:),    ALLOCATABLE           :: atom_a, atom_b   !Coordinates of atom 1 and atom 2 whree you calculate the distance  (For example distance Oxygen (N.5) and Hydrogen (n.7). atoma =5. atomb = 7. Atom_a = (O5_x, O5_y, O5_z), etc etc 
+integer(kind=8)                                         :: number_of_couples  !MAX 29!!!!!!!!!
  
   real(kind=8),    DIMENSION(:, :), ALLOCATABLE              :: atom_position
 integer(kind=8), DIMENSION(:),    ALLOCATABLE              :: element_quantity
-integer(kind=8), DIMENSION(3)                             :: per
+integer(kind=8), DIMENSION(3)                             :: per  ! To generate the 27 Next Neighbour
   real(kind=8)                                          :: lattice_11, lattice_12, lattice_13
 real(kind=8)                                            :: lattice_21, lattice_22, lattice_23
 real(kind=8)                                            :: lattice_31, lattice_32, lattice_33
@@ -84,19 +84,30 @@ real(kind=8)                                            :: lattice_31, lattice_3
 real(kind=8)                                            :: alpha, beta, gamma
 real(kind=8)                                            :: calpha, cbeta, cgamma
 integer(kind=8)                                         :: i , ii, jj, kk, jkl, write_i
-integer(kind=8)                                         :: unit_output
- 
-integer(kind=8), DIMENSION(:, :), ALLOCATABLE                           :: rdf_minimo, rdf_all, vector_rdf
+integer(kind=8)                                         :: unit_output  ! The distance of couple number N is output on fort.N 
+!fort.(N+10) contains the closest atom B to atom A. 
+! I also generate fort.(N+30) This contains the distances between A and all the 27 NN B atoms. 
+! N is the number of couples. SO.... IF N= 32. File fort.32 will cointan the disstance of couple N=32, BUT also the distance of all the NN 
+! atoms of couple 2. Because those results are written in fort. (2+30), which is the same file!
+
+!!!!!!! CHECK if N+30 or N+40. In case MAX couples 29 or 19
+
+
+
+
+integer(kind=8), DIMENSION(:, :), ALLOCATABLE                           :: rdf_minimo, rdf_all, vector_rdf  ! RDF radial distribution function
 !integer(kind=8), DIMENSION(600)                            :: rdf_minimo, rdf_all, vector_rdf
  
 real(kind=8)                                            :: x_axis
 ! DEFINE FILES
 open (unit =  1, file="ONE_XDATCAR", status='old', action='read')  ! trajectory as in HEADER + ALL THE CONFIGURATIONS
 open (unit =  2, file="INPUT", status='old', action='read')  ! trajectory as in HEADER + ALL THE CONFIGURATIONS
- 
+! Necessary to generate next cells. 
 per(1) = -1
 per(2) = 0
 per(3) = 1
+!
+
 read(1,*) !num_structu, num_species
 read(1,*) !skip
 read(1,*) lattice_11, lattice_12, lattice_13
@@ -108,7 +119,7 @@ read(1,*) ! skip elements name
 read(2,*) num_structu, num_species
 read(2,*)number_of_couples
  
-ALLOCATE(rdf_minimo(number_of_couples,600))
+ALLOCATE(rdf_minimo(number_of_couples,600))  !!!! We do not know how many atoms, we have. We read the number, THEN WE CREATE VECTOR: allocate
 ALLOCATE(rdf_all(number_of_couples,600))
 ALLOCATE(vector_rdf(number_of_couples,600))
 ALLOCATE(atom_a(number_of_couples))
@@ -116,7 +127,7 @@ ALLOCATE(atom_b(number_of_couples))
 atom_a = 0
 atom_b = 0
  
-do jkl=1, number_of_couples
+do jkl=1, number_of_couples   ! AGAIN CHECK LESS 29 or 19
 read(2,*)atom_a(jkl),atom_b(jkl)
 end do
  
@@ -203,7 +214,7 @@ end do ! num_structure
     do jkl=1, number_of_couples
         unit_output = 10 + jkl
         x_axis = 0.0
-        do write_i=1,600
+        do write_i=1,600  ! fort.unit_output +10
             write(unit_output,*)x_axis, rdf_minimo(jkl,write_i)
             write(unit_output+30,*)x_axis, rdf_all(jkl,write_i)
             x_axis = x_axis + 0.1
